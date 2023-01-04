@@ -115,8 +115,12 @@ callbacks:
   lr_monitor: {}
   memory_monitor: {}
 
-# loggers:
-#   wandb: {}
+loggers:
+  wandb:
+    project: mcli-testing
+    group: 1b-logging
+    team: eleutherai
+    
 
 # Checkpoint to local filesystem or remote object store
 # save_interval: 2000ba
