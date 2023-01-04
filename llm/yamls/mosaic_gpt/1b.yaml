@@ -119,7 +119,7 @@ loggers:
   wandb:
     project: mcli-testing
     group: 1b-logging
-    team: eleutherai
+    entity: eleutherai
     
 
 # Checkpoint to local filesystem or remote object store
