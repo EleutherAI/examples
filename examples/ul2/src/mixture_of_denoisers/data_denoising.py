@@ -41,7 +41,7 @@ def ul2_prefix_function(
 
     See: http://arxiv.org/abs/2205.05131
     """
-    if mask_ratio = 0.0:
+    if mask_ratio == 0.0:
         # Causal LM mixture
         prefix = '[CLM]'
     elif mean_length is None:
