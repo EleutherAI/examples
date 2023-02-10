@@ -41,7 +41,10 @@ def ul2_prefix_function(
 
     See: http://arxiv.org/abs/2205.05131
     """
-    if mean_length is None:
+    if mask_ratio = 0.0:
+        # Causal LM mixture
+        prefix = '[CLM]'
+    elif mean_length is None:
         # This is the case for "sequence to sequence"
         prefix = '[S2S]'
     elif mean_length >= 12 or mask_ratio >= 0.3:
@@ -67,6 +70,7 @@ class MixtureOfDenoisersCollator:
         span_mean_lengths_and_ratios: Optional[Union[List[List[float]],
                                                      List[float]]] = None,
         sequence_mask_ratios: Optional[Union[List[float], float]] = None,
+        blending_ratios: Optional[Union[List[float], float]] = None,
         prefix_function: Optional[PREFIX_FUNCTION] = ul2_prefix_function,
     ):
         self.tokenizer = tokenizer
@@ -126,7 +130,7 @@ class MixtureOfDenoisersCollator:
         elif isinstance(self.sequence_mask_ratios, float):
             self.sequence_mask_ratios = [self.sequence_mask_ratios]
         for sequence_mask_ratio in self.sequence_mask_ratios:
-            if not 0 < sequence_mask_ratio < 0.5:
+            if not 0.0 <= sequence_mask_ratio < 0.5:
                 raise ValueError(
                     'All sequence masking ratios must be between 0.0 and 0.5.')
 
@@ -143,10 +147,17 @@ class MixtureOfDenoisersCollator:
             }
             self._noisers.append(kwargs)
 
+        self.blending_ratios = blending_ratios
+
         if not self._noisers:
             raise ValueError(
                 'No denoising tasks were included. Make sure to set ' + \
                 '`span_mean_lengths_and_ratios` and/or `sequence_mask_ratios`.')
+        if blending_ratios and len(blending_ratios) == len(self._noisers):
+            raise ValueError(
+                'If passing denoiser mixing ratios, must be same length as total different settings'
+            )
+
 
     def __call__(self, examples: List[Dict[str,
                                            Any]]) -> Dict[str, torch.Tensor]:
@@ -154,7 +165,7 @@ class MixtureOfDenoisersCollator:
         processed_examples = []
         for example in examples:
             # Randomly pick a "noiser" to apply to this example
-            noiser = random.choice(self._noisers)
+            noiser = random.choice(population=self._noisers, weights=self.blending_ratios)[0]
             # Apply it
             processed_examples.append(
                 noise_token_sequence(

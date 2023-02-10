@@ -1,0 +1,103 @@
+data_remote: &data_remote ./my-copy-c4
+data_local: &data_local ./my-copy-c4
+tokenizer_name: &tokenizer_name EleutherAI/pythia-2.8b
+max_seq_len: &max_seq_len 2048
+mixture_of_denoisers: &mixture_of_denoisers
+  decoder_only_format: true
+  span_mean_lengths_and_ratios:
+  - [3, .15]  # [R]
+  - [32, .50] # [X]
+  sequence_mask_ratios: [0.25, 0] # [S] , [CLM]
+  blending_ratios: [0.10, 0.10, 0.20, 0.60]
+
+# Run Name
+run_name: decoder--ul2--from-scratch
+
+# Model
+model:
+  name: hf_prefix_lm
+  use_pretrained: false # Train the model from scratch. Set to true to start from the HF off-the-shelf weights.
+  pretrained_model_name: *tokenizer_name
+  tokenizer_name: *tokenizer_name
+
+# Dataloaders
+train_loader:
+  name: text_denoising
+  dataset:
+    remote: *data_remote
+    local: *data_local
+    split: train
+    tokenizer_name: *tokenizer_name
+    max_seq_len: *max_seq_len
+    group_method: concat
+    prefetch: 1_000_000
+    shuffle: true
+  mixture_of_denoisers: *mixture_of_denoisers
+  drop_last: true
+  num_workers: 0
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: false
+  timeout: 0
+
+eval_loader:
+  name: text_denoising
+  dataset:
+    remote: *data_remote
+    local: *data_local
+    split: val
+    tokenizer_name: *tokenizer_name
+    max_seq_len: *max_seq_len
+    group_method: concat
+    prefetch: 1000
+    shuffle: false
+  mixture_of_denoisers: *mixture_of_denoisers
+  drop_last: false
+  num_workers: 0
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: false
+  timeout: 0
+
+global_train_batch_size: 2048
+
+# Optimization
+scheduler:
+  name: inverse_square_root # UL2 paper calls for inverse square root scheduler
+  alpha_max: 0.01
+
+optimizer:
+  name: adafactor # UL2 paper calls for Adafactor w/ unknown HPs
+  lr: 1.0 # Actual LR determined by scheduler
+  weight_decay: 0.0 # Amount of weight decay regularization
+  scale_parameter: true
+
+# Training duration and evaluation frequency
+max_duration: 143000ba
+eval_interval: 1000ba
+
+# Checkpoint to local filesystem or remote object store
+save_interval: 1000ba
+#save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+save_folder: /mnt/hdd/hailey/ul2_ckpts/2.8b-scratch-clm-mod # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
+
+# System
+seed: 17
+grad_accum: auto
+precision: fp16
+
+# Logging
+progress_bar: false
+log_to_console: true
+
+loggers:
+  wandb: {}
+
+callbacks:
+  speed_monitor:
+    window_size: 10
+  lr_monitor: {}
+  mod_printer:
+    print_frequency: 100
+    max_length: *max_seq_len
+    tokenizer_name: *tokenizer_name
