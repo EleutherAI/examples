@@ -220,6 +220,7 @@ class MixtureOfDenoisersCollator:
         # This slicing can produce non-contiguous tensors, so use .contiguous
         # to prevent related problems
         batch = {k: v.contiguous() for k, v in batch.items()}
+        [print(v.shape) for k,v in batch.items()]
 
         return batch
 
