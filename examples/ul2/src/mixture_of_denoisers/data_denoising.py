@@ -165,7 +165,7 @@ class MixtureOfDenoisersCollator:
         processed_examples = []
         for example in examples:
             # Randomly pick a "noiser" to apply to this example
-            noiser = random.choice(population=self._noisers, weights=self.blending_ratios)[0]
+            noiser = random.choices(population=self._noisers, weights=self.blending_ratios)[0]
             # Apply it
             processed_examples.append(
                 noise_token_sequence(
