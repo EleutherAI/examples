@@ -8,7 +8,7 @@ from transformers import (AutoTokenizer, PreTrainedTokenizer,
 
 # For consistency with T5 Tokenizer, which is what this adaptation aims to mimic,
 # we hardcode there to be 100 sentinel tokens
-NUM_SENTINEL_TOKENS: int = 100
+NUM_SENTINEL_TOKENS: int = 400
 
 
 def adapt_tokenizer_for_denoising(tokenizer: Union[PreTrainedTokenizer,
